@@ -44,13 +44,14 @@ public class Test extends Application
 		// in z direction 0-112)
 		Slider zslider = new Slider(0, 112, 0);
 		Slider yslider = new Slider(0, 255, 0);
+		Slider xslider = new Slider(0,255,0);
 
 		mip_button.setOnAction(new EventHandler<ActionEvent>()
 		{
 			@Override
 			public void handle(ActionEvent event)
 			{
-				MIP(medical_image);
+				// MIP(medical_image);
 			}
 		});
 
@@ -58,6 +59,25 @@ public class Test extends Application
 		{
 			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue)
 			{
+				MIPZ(medical_image, newValue.intValue());
+				System.out.println(newValue.intValue());
+			}
+		});
+
+		yslider.valueProperty().addListener(new ChangeListener<Number>()
+		{
+			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue)
+			{
+				MIPY(medical_image, newValue.intValue());
+				System.out.println(newValue.intValue());
+			}
+		});
+		
+		xslider.valueProperty().addListener(new ChangeListener<Number>() 
+		{
+			public void changed(ObservableValue<? extends Number> observable,Number oldValue,Number newValue)
+			{
+				MIPX(medical_image,newValue.intValue());
 				System.out.println(newValue.intValue());
 			}
 		});
@@ -67,7 +87,7 @@ public class Test extends Application
 		root.setHgap(4);
 //https://examples.javacodegeeks.com/desktop-java/javafx/scene/image-scene/javafx-image-example/
 
-		root.getChildren().addAll(imageView, mip_button, zslider, yslider);
+		root.getChildren().addAll(imageView, mip_button, zslider, yslider,xslider);
 
 		Scene scene = new Scene(root, 640, 480);
 		stage.setScene(scene);
@@ -125,10 +145,10 @@ public class Test extends Application
 	 * dimensions of the image, and then loops through the image carrying out the
 	 * copying of a slice of data into the image.
 	 */
-	public void MIP(WritableImage image)
+	public void MIPZ(WritableImage image, int k)
 	{
 		// Get image dimensions, and declare loop variables
-		int w = (int) image.getWidth(), h = (int) image.getHeight(), i, j, c, k;
+		int w = (int) image.getWidth(), h = (int) image.getHeight(), i, j, c;
 		PixelWriter image_writer = image.getPixelWriter();
 
 		float col;
@@ -147,7 +167,7 @@ public class Test extends Application
 				// In the framework, the image is 256x256 and the data set slices are 256x256
 				// so I don't do anything - this also leaves you something to do for the
 				// assignment
-				datum = cthead[76][j][i]; // get values from slice 76 (change this in your assignment)
+				datum = cthead[k][j][i]; // get values from slice 76 (change this in your assignment)
 				// calculate the colour by performing a mapping from [min,max] -> [0,255]
 				col = (((float) datum - (float) min) / ((float) (max - min)));
 				for (c = 0; c < 3; c++)
@@ -155,6 +175,78 @@ public class Test extends Application
 					// and now we are looping through the bgr components of the pixel
 					// set the colour component c of pixel (i,j)
 					image_writer.setColor(i, j, Color.color(col, col, col, 1.0));
+					// data[c+3*i+3*j*w]=(byte) col;
+				} // colour loop
+			} // column loop
+		} // row loop
+	}
+
+	public void MIPY(WritableImage image, int j)
+	{
+		// Get image dimensions, and declare loop variables
+		int w = (int) image.getWidth(), h = (int) image.getHeight(), i, c,k;
+		PixelWriter image_writer = image.getPixelWriter();
+
+		float col;
+		short datum;
+		// Shows how to loop through each pixel and colour
+		// Try to always use j for loops in y, and i for loops in x
+		// as this makes the code more readable
+		for (k = 0; k < 113; k++)
+		{
+			for (i = 0; i < w; i++)
+			{
+				// at this point (i,j) is a single pixel in the image
+				// here you would need to do something to (i,j) if the image size
+				// does not match the slice size (e.g. during an image resizing operation
+				// If you don't do this, your j,i could be outside the array bounds
+				// In the framework, the image is 256x256 and the data set slices are 256x256
+				// so I don't do anything - this also leaves you something to do for the
+				// assignment
+				datum = cthead[k][j][i]; // get values from slice 76 (change this in your assignment)
+				// calculate the colour by performing a mapping from [min,max] -> [0,255]
+				col = (((float) datum - (float) min) / ((float) (max - min)));
+				for (c = 0; c < 3; c++)
+				{
+					// and now we are looping through the bgr components of the pixel
+					// set the colour component c of pixel (i,j)
+					image_writer.setColor(i, k, Color.color(col, col, col, 1.0));
+					// data[c+3*i+3*j*w]=(byte) col;
+				} // colour loop
+			} // column loop
+		} // row loop
+	}
+	
+	public void MIPX(WritableImage image, int i)
+	{
+		// Get image dimensions, and declare loop variables
+		int w = (int) image.getWidth(), h = (int) image.getHeight(), j,c,k;
+		PixelWriter image_writer = image.getPixelWriter();
+
+		float col;
+		short datum;
+		// Shows how to loop through each pixel and colour
+		// Try to always use j for loops in y, and i for loops in x
+		// as this makes the code more readable
+		for (j = 0; j < 256; j++)
+		{
+			for (k = 0; k < 113; k++)
+			{
+				// at this point (i,j) is a single pixel in the image
+				// here you would need to do something to (i,j) if the image size
+				// does not match the slice size (e.g. during an image resizing operation
+				// If you don't do this, your j,i could be outside the array bounds
+				// In the framework, the image is 256x256 and the data set slices are 256x256
+				// so I don't do anything - this also leaves you something to do for the
+				// assignment
+				datum = cthead[k][j][i]; // get values from slice 76 (change this in your assignment)
+				// calculate the colour by performing a mapping from [min,max] -> [0,255]
+				col = (((float) datum - (float) min) / ((float) (max - min)));
+				for (c = 0; c < 3; c++)
+				{
+					// and now we are looping through the bgr components of the pixel
+					// set the colour component c of pixel (i,j)
+					image_writer.setColor(j, k, Color.color(col, col, col, 1.0));
 					// data[c+3*i+3*j*w]=(byte) col;
 				} // colour loop
 			} // column loop
