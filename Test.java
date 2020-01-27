@@ -79,7 +79,7 @@ public class Test extends Application
 	{
 		// File name is hardcoded here - much nicer to have a dialog to select it and
 		// capture the size from the user
-		File file = new File("CThead.raw");
+		File file = new File("CThead");
 		// Read the data quickly via a buffer (in C++ you can just do a single fread - I
 		// couldn't find if there is an equivalent in Java)
 		DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
