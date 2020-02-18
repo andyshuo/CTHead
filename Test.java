@@ -12,6 +12,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.paint.Color;
@@ -31,27 +32,56 @@ public class Test extends Application
 	public void start(Stage stage) throws FileNotFoundException, IOException
 	{
 		stage.setTitle("CThead Viewer");
+		
 
 		ReadData();
 
 		int width = 256;
 		int height = 256;
-		WritableImage medical_image = new WritableImage(width, height);
-		ImageView imageView = new ImageView(medical_image);
+		WritableImage medical_imageZ = new WritableImage(width, height);
+		WritableImage medical_imageY = new WritableImage(width, height);
+		WritableImage medical_imageX = new WritableImage(width, height);
+		WritableImage MIPZ = new WritableImage(width, height);
+		WritableImage MIPY = new WritableImage(width, height);
+		WritableImage MIPX = new WritableImage(width, height);
+		ImageView imageViewZ = new ImageView(medical_imageZ);
+		ImageView imageViewY = new ImageView(medical_imageY);
+		ImageView imageViewX = new ImageView(medical_imageX);
+		ImageView viewZ = new ImageView(MIPZ);
+		ImageView viewY = new ImageView(MIPY);
+		ImageView viewX = new ImageView(MIPX);
 
 		Button mip_button = new Button("MIP"); // an example button to switch to MIP mode
 		// sliders to step through the slices (z and y directions) (remember 113 slices
 		// in z direction 0-112)
+		Button resizeMIP = new Button("Resize Nearest Neighbour");
+		Button resizeBilinear = new Button("Resize Bilinear");
 		Slider zslider = new Slider(0, 112, 0);
 		Slider yslider = new Slider(0, 255, 0);
-		Slider xslider = new Slider(0,255,0);
+		Slider xslider = new Slider(0, 255, 0);
+		
+		resizeBilinear.setOnAction(new EventHandler<ActionEvent>() {
+			public void handle(ActionEvent event)
+			{
+				viewY.setImage(resizeBilinear(MIPY));
+				viewX.setImage(resizeBilinear(MIPX));
+			}
+		});
+		
+		resizeMIP.setOnAction(new EventHandler<ActionEvent>() {
+			public void handle(ActionEvent event)
+			{
+				viewY.setImage(resizing(MIPY));
+				viewX.setImage(resizing(MIPX));
+			}
+		});
 
 		mip_button.setOnAction(new EventHandler<ActionEvent>()
 		{
 			@Override
 			public void handle(ActionEvent event)
 			{
-				// MIP(medical_image);
+				MIPALL(MIPZ, MIPY, MIPX);
 			}
 		});
 
@@ -59,7 +89,8 @@ public class Test extends Application
 		{
 			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue)
 			{
-				MIPZ(medical_image, newValue.intValue());
+				MIPZ(medical_imageZ, newValue.intValue());
+				resizing(medical_imageY);
 				System.out.println(newValue.intValue());
 			}
 		});
@@ -68,16 +99,16 @@ public class Test extends Application
 		{
 			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue)
 			{
-				MIPY(medical_image, newValue.intValue());
+				MIPY(medical_imageY, newValue.intValue());
 				System.out.println(newValue.intValue());
 			}
 		});
-		
-		xslider.valueProperty().addListener(new ChangeListener<Number>() 
+
+		xslider.valueProperty().addListener(new ChangeListener<Number>()
 		{
-			public void changed(ObservableValue<? extends Number> observable,Number oldValue,Number newValue)
+			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue)
 			{
-				MIPX(medical_image,newValue.intValue());
+				MIPX(medical_imageX, newValue.intValue());
 				System.out.println(newValue.intValue());
 			}
 		});
@@ -87,11 +118,91 @@ public class Test extends Application
 		root.setHgap(4);
 //https://examples.javacodegeeks.com/desktop-java/javafx/scene/image-scene/javafx-image-example/
 
-		root.getChildren().addAll(imageView, mip_button, zslider, yslider,xslider);
+		root.getChildren().addAll(imageViewZ, imageViewY, imageViewX, mip_button,resizeMIP,resizeBilinear, zslider, yslider, xslider, viewZ,
+				viewY, viewX);
 
-		Scene scene = new Scene(root, 640, 480);
+
+		
+		Scene scene = new Scene(root, 1000, 900);
 		stage.setScene(scene);
 		stage.show();
+	}
+
+	public void MIPALL(WritableImage imageZ, WritableImage imageY, WritableImage imageX)
+	{
+		PixelWriter image_writerZ = imageZ.getPixelWriter();
+		PixelWriter image_writerY = imageY.getPixelWriter();
+		PixelWriter image_writerX = imageX.getPixelWriter();
+
+		short datum;
+
+
+		for (int j = 0; j < imageZ.getHeight(); j++)
+		{
+			for (int i = 0; i < imageZ.getWidth(); i++)
+			{
+				float col = 0;
+				for (int k = 0; k < 113; k++)
+				{
+					datum = cthead[k][j][i];
+
+					float temp = (((float) datum - (float) min) / ((float) (max - min)));
+					if (temp > col)
+					{
+						col = temp;
+					}
+					for (int c = 0; c < 3; c++)
+					{
+						image_writerZ.setColor(i, j, new Color(col, col, col, 1.0));
+					}
+				}
+			}
+		}
+		
+		
+		for(int k=0;k<113;k++)
+		{
+			for(int i=0;i<256;i++)
+			{
+				float col =0;
+				for(int j=0;j<256;j++)
+				{
+					datum = cthead[k][j][i];
+					float temp = (((float) datum - (float) min) / ((float) (max - min)));
+					if(temp>col)
+					{
+						col=temp;
+					}
+					for(int c=0;c<3;c++)
+					{
+						image_writerY.setColor(i,k,new Color(col,col,col,1.0));
+					}
+				}
+			}
+		}
+		
+		
+		for(int k=0;k<113;k++)
+		{
+			for(int j=0;j<256;j++)
+			{
+				float col = 0;
+				for(int i=0;i<256;i++)
+				{
+					datum = cthead[k][j][i];
+					float temp = (((float) datum - (float) min) / ((float) (max - min)));
+					if(temp > col)
+					{
+						col = temp;
+					}
+					for(int c=0;c<3;c++)
+					{
+						image_writerX.setColor(j,k,new Color(col,col,col,1.0));
+					}
+				}
+			}
+		}
+
 	}
 
 	// Function to read in the cthead data set
@@ -184,7 +295,7 @@ public class Test extends Application
 	public void MIPY(WritableImage image, int j)
 	{
 		// Get image dimensions, and declare loop variables
-		int w = (int) image.getWidth(), h = (int) image.getHeight(), i, c,k;
+		int w = (int) image.getWidth(), h = (int) image.getHeight(), i, c, k;
 		PixelWriter image_writer = image.getPixelWriter();
 
 		float col;
@@ -215,12 +326,29 @@ public class Test extends Application
 				} // colour loop
 			} // column loop
 		} // row loop
+		
+		
+
+		PixelReader pr = image.getPixelReader();
+		
+		for(int y=0;y<256;y++)
+		{
+			for(int x=0;x<256;x++)
+			{
+				Color temp = pr.getColor(x, y);
+				int a = y*(112/256);
+				for(int v=0;v<3;v++)
+				{
+					image_writer.setColor(x,a,Color.color(temp.getRed(),temp.getGreen(),temp.getBlue(),1.0));
+				}
+			}
+		}
 	}
-	
+
 	public void MIPX(WritableImage image, int i)
 	{
 		// Get image dimensions, and declare loop variables
-		int w = (int) image.getWidth(), h = (int) image.getHeight(), j,c,k;
+		int w = (int) image.getWidth(), h = (int) image.getHeight(), j, c, k;
 		PixelWriter image_writer = image.getPixelWriter();
 
 		float col;
@@ -251,6 +379,114 @@ public class Test extends Application
 				} // colour loop
 			} // column loop
 		} // row loop
+	}
+	
+	public WritableImage resizing(WritableImage image)
+	{
+		WritableImage result = new WritableImage(256,256);
+		PixelWriter pw = result.getPixelWriter();
+		PixelReader pr = image.getPixelReader();
+		float ratio = ((float)112/(float)256);
+		//System.out.println(ratio);
+		
+		for(int j=0;j<result.getHeight();j++)
+		{
+			for(int i=0;i<result.getWidth();i++)
+			{
+				for(int c=0;c<2;c++)
+				{
+					int y=Math.round(j*ratio);
+					//System.out.println(y);
+					Color temp = pr.getColor(i,y);
+					pw.setColor(i,j,temp);
+				}
+			}
+		}
+		return result;
+		
+		
+	}
+	
+	public WritableImage resizeBilinear(WritableImage image)
+	{
+		WritableImage result = new WritableImage(256,256);
+		PixelWriter pw = result.getPixelWriter();
+		PixelReader pr = image.getPixelReader();
+		float ratioX=1;
+		float ratioY = (float)112/(float)256;
+		
+		for(int j=0;j<256;j++)
+		{
+			for(int i=0;i<256;i++)
+			{
+				for(int c=0;c<2;c++)
+				{
+					
+					int x1 = (int) Math.floor(i*1);
+					int y1 = (int) Math.floor(j*ratioY);
+					
+					int x2 = x1+1;
+					int y2 = y1;
+					int x3 = x1;
+					int y3 = y1+1;
+					int x4 = x1+1;
+					int y4 = y1+1;
+					//System.out.println(y1);
+					//System.out.println(y2);
+					//System.out.println(y3);
+					//System.out.println(y4);
+					pw.setColor(i,j,getColor(pr,x1,x2,x3,x4,y1,y2,y3,y4, i,j, ratioX,ratioY));
+					
+				}
+			}
+		}
+		return result;
+	}
+	
+	public Color getColor(PixelReader pr, int x1,int x2,int x3,int x4, int y1,int y2, int y3,int y4, int x, int y, float rX, float rY)
+	{
+		if(x2==256)
+		{
+			float ratioY2 = (y-(y1/rY))/((y4/rY)-(y1/rY));
+			Color t =colorDifference(pr.getColor(x1,y1),pr.getColor(x3,y3),ratioY2);
+			return t;
+		}
+		float ratioX = (x-(x1/rX))/((x2/rX)-(x1/rX));
+		//System.out.println(ratioX);
+		Color tempX = colorDifference(pr.getColor(x1,y1),pr.getColor(x2,y2), ratioX);
+		//System.out.println(1);
+		float ratioY = (y-(y1/rY))/((y4/rY)-(y1/rY));
+		//System.out.println(ratioY);
+		Color tempX2 = colorDifference(pr.getColor(x3,y3),pr.getColor(x4,y4),ratioX);
+		//System.out.println(2);
+		Color tempY = colorDifference(tempX,tempX2,ratioY);
+		//System.out.println(3);
+		return tempY;
+		//Color 
+	}
+	
+	public Color colorDifference(Color a, Color b, float ratio)
+	{
+		//System.out.println(ratio);
+		//System.out.println(a.getRed());
+		//System.out.println(b.getRed());
+		double red = a.getRed()+ratio*(b.getRed()-a.getRed());
+		//System.out.println(red);
+		double green = a.getGreen()+ratio*(b.getGreen()-a.getGreen());
+		//System.out.println(green);
+		double blue = a.getBlue()+ratio*(b.getBlue()-a.getBlue());
+		//System.out.println(blue);
+		return new Color(red,green,blue,1);
+	}
+	public Color colorAdd(Color a, Color b)
+	{
+		double red = a.getRed()+b.getRed();
+		//System.out.println(red);
+		double green = a.getGreen()+b.getGreen();
+		//System.out.println(green);
+		double blue = a.getBlue() + b.getBlue();
+		//System.out.println(blue);
+		return new Color(red,green,blue,1);
 	}
 
 	public static void main(String[] args)
